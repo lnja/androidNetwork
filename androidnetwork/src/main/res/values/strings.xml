@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">androidNetwork</string>
+    <string name="network_unstable_pls_check">网络连接不稳定，请检查网络设置</string>
+    <string name="network_unavailable_pls_check">网络连接不可用，请检查网络设置</string>
+    <string name="auth_failure">未通过认证，请求不合法</string>
+    <string name="server_anomaly_try_later">服务器开了会小差，请稍候再试</string>
+    <string name="parse_failure_try_later">更新版本，或稍候再试</string>
+    <string name="response_check_anomaly_try_later">数据异常，更新版本试试</string>
+    <string name="network_anomaly_try_later">网络异常，请稍候再试</string>
+    <string name="request_anomaly_try_later">请求异常，请稍候再试</string>
+</resources>
