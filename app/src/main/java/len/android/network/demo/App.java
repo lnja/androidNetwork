@@ -16,7 +16,6 @@ import len.tools.android.extend.LnjaCsvFormatStrategy;
 import java.util.HashMap;
 import java.util.Map;
 
-import static len.android.network.Config.isDebug;
 import static len.android.network.demo.Config.*;
 
 public class App extends AppBase implements Thread.UncaughtExceptionHandler {
@@ -96,7 +95,7 @@ public class App extends AppBase implements Thread.UncaughtExceptionHandler {
     }
 
     public void initRetrofit360() {
-        isDebug(true);
+        len.android.network.Config.isDebug(BuildConfig.DEBUG);
         Map<String, String> headerParms = new HashMap<>();
         headerParms.put("Connection", "keep-alive");
         RetrofitWrapper.getInstance().init(SERVER_HOST_360, headerParms);
@@ -104,7 +103,7 @@ public class App extends AppBase implements Thread.UncaughtExceptionHandler {
     }
 
     public void initRetrofitTaobao() {
-        isDebug(true);
+        len.android.network.Config.isDebug(BuildConfig.DEBUG);
         Map<String, String> headerParms = new HashMap<>();
         headerParms.put("Connection", "keep-alive");
         RetrofitWrapper.getInstance().init(SERVER_HOST_TAOBAO, headerParms);
