@@ -100,7 +100,7 @@ public class OkHttpClientWrapper {
         builder.addInterceptor(createBasicParamsInterceptor(headerParams));
         builder.addInterceptor(createRetryInterceptor());
         //eventListener()会覆盖eventListenerFactory()设置的EventListener
-        if (BuildConfig.DEBUG) {
+        if (Config.isDebug()) {
             builder.addNetworkInterceptor(createLogInterceptor());
             builder.eventListenerFactory(new LoggingEventListener.Factory());
         }
@@ -210,5 +210,10 @@ public class OkHttpClientWrapper {
 
     public void setEventListener(EventListener eventListener) {
         this.mEventListener = eventListener;
+    }
+
+
+    public void release() {
+
     }
 }

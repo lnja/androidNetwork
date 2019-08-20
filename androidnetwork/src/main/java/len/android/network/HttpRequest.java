@@ -126,7 +126,9 @@ public abstract class HttpRequest<T extends BaseRsp> {
             mRequestUiHandler.onStart(mRequestEntity.getHintMsg().getMsg());
         }
         if (mRequestEntity.getParams() == null) {
-            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath(), null);
+            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath());
+        } else if (mRequestEntity.getParams() instanceof Map) {
+            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath(), (Map<String, Object>) mRequestEntity.getParams());
         } else {
             call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath(), JsonUtils.toJson(mRequestEntity.getParams()));
         }
@@ -171,22 +173,27 @@ public abstract class HttpRequest<T extends BaseRsp> {
                     return;
                 }
                 if (response.isSuccessful()) {
-                    Log.e(JsonUtils.gsonToJson(response.body()));
+                    Log.d(JsonUtils.gsonToJson(response.body()));
                     T objectT = JsonUtils.gsonToEntity(response.body(), getClassOfT());
-                    if (objectT.isSuccess()) {
+                    if (objectT != null && objectT.isSuccess()) {
                         onSuccess(objectT);
                         if (mRequestEntity.isShouldCache()) {
 //                            HttpCacheUtil.instance().put(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), response.body());
                         }
                     } else {
-                        /*if (!TextUtils.isEmpty(response.body().getErrMsg())) {
-                            mContext.getToastDialog().showToJast(response.body().getErrMsg());
-                        }*/
-                        onFail(objectT);
+                        if (objectT == null) {
+                            BaseRsp result = new BaseRsp();
+                            result.setCode(ErrorCode.ERR_CODE_PARSE_FAILURE);
+                            result.setMsg(mContext.getString(R.string.parse_failure_try_later));
+                            onFail(result);
+                        } else {
+                            onFail(objectT);
+                        }
                     }
                 } else if (response.code() == 401 || response.code() == 403) { //授权异常
                     BaseRsp result = new BaseRsp();
                     result.setCode(ErrorCode.ERR_CODE_AUTH_FAILURE);
+                    result.setMsg(mContext.getString(R.string.auth_failure));
                     onFail(result);
                 } else {
                     BaseRsp result = new BaseRsp();
@@ -265,7 +272,7 @@ public abstract class HttpRequest<T extends BaseRsp> {
 
     }
 
-    protected void performRequestError(BaseRsp result) {
+    protected void performRequestErrorByDefault(BaseRsp result) {
         if (mContext instanceof RequestUiHandler) {
             ((RequestUiHandler) mContext).onError(result.getCode(), result.getMsg());
         } else if (mContext instanceof Activity) {
@@ -306,7 +313,7 @@ public abstract class HttpRequest<T extends BaseRsp> {
         if (mRequestUiHandler != null && result != null) {
             mRequestUiHandler.onError(result.getCode(), result.getMsg());
         } else {
-            performRequestError(result);
+            performRequestErrorByDefault(result);
         }
         if (call != null) {
 //                HttpCacheUtil.instance().get(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), this);

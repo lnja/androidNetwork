@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public class RetrofitWrapper {
-    private static final Object SYNCOBJECT = new Object();
+    private static final Object SYNC_OBJECT = new Object();
     private static Retrofit retrofit = null;
     private static volatile RetrofitWrapper INSTANCE;
     private APIService apiService;
@@ -24,7 +24,7 @@ public class RetrofitWrapper {
 
     public static RetrofitWrapper getInstance() {
         if (INSTANCE == null) {
-            synchronized (SYNCOBJECT) {
+            synchronized (SYNC_OBJECT) {
                 if (INSTANCE == null) {
                     INSTANCE = new RetrofitWrapper();
                 }
@@ -101,6 +101,6 @@ public class RetrofitWrapper {
     }
 
     public void release() {
-
+        OkHttpClientWrapper.getInstance().release();
     }
 }

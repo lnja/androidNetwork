@@ -83,12 +83,6 @@ public class RequestEntity {
         return isShowCacheFirst;
     }
 
-//    public void put(String key, String value) {
-//        if (mParamsMap != null) {
-//            mParamsMap.put(key, value);
-//        }
-//    }
-
     public String getExtraCacheKey() {
         if (TextUtils.isEmpty(extraCacheKey)) {
             extraCacheKey = "";
@@ -199,16 +193,12 @@ public class RequestEntity {
         public Builder addParams(JsonInterface data) {
             mParamsMap = null;
             mParams = data;
-//            mParams = JsonUtils.toJson(data);
-//            Log.e(mParams);
-//            mParams = JsonUtils.gsonToJson(data);
             return this;
         }
 
         public Builder addParams(List data) {
             mParamsMap = null;
             mParams = data;
-//            mParams = JsonUtils.toJson(data);
             return this;
         }
 

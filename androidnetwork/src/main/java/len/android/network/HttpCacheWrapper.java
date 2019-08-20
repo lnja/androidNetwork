@@ -52,7 +52,7 @@ public class HttpCacheWrapper {
 
     public void initDiskCache(Context context) {
         try {
-            mHttpLruCache = DiskLruCache.open(StorageUtils.getCustomCacheDirectory(context, "httpCache"), AndroidUtils.getVersionCode(context, 0), DEFAULT_VALUE_COUNT, DEFAULT_CACHE_SIZE);
+            mHttpLruCache = DiskLruCache.open(StorageUtils.getCacheCustomDir(context, "httpCache"), AndroidUtils.getVersionCode(context, 0), DEFAULT_VALUE_COUNT, DEFAULT_CACHE_SIZE);
         } catch (IOException e) {
             mHttpLruCache = null;
             e.printStackTrace();
