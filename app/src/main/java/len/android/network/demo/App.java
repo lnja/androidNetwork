@@ -7,6 +7,7 @@ import android.content.Intent;
 import com.orhanobut.logger.*;
 import len.android.basic.AppBase;
 import len.android.network.HttpCacheWrapper;
+import len.android.network.OkHttpClientWrapper;
 import len.android.network.RetrofitWrapper;
 import len.tools.android.AndroidUtils;
 import len.tools.android.Log;
