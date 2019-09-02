@@ -4,20 +4,26 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import com.orhanobut.logger.*;
+
+import com.orhanobut.logger.AndroidLogAdapter;
+import com.orhanobut.logger.DiskLogAdapter;
+import com.orhanobut.logger.FormatStrategy;
+import com.orhanobut.logger.Logger;
+import com.orhanobut.logger.PrettyFormatStrategy;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import len.android.basic.AppBase;
 import len.android.network.HttpCacheWrapper;
-import len.android.network.OkHttpClientWrapper;
 import len.android.network.RetrofitWrapper;
 import len.tools.android.AndroidUtils;
 import len.tools.android.Log;
 import len.tools.android.StorageUtils;
 import len.tools.android.extend.LnjaCsvFormatStrategy;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static len.android.network.demo.Config.*;
+import static len.android.network.demo.Config.SERVER_HOST_360;
+import static len.android.network.demo.Config.SERVER_HOST_TAOBAO;
 
 public class App extends AppBase implements Thread.UncaughtExceptionHandler {
     private static App instance;

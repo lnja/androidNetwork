@@ -1,13 +1,20 @@
 package len.android.network;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.AsyncTask;
+
 import com.bumptech.glide.disklrucache.DiskLruCache;
+
+import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
 import len.tools.android.AndroidUtils;
+import len.tools.android.JsonUtils;
 import len.tools.android.Log;
 import len.tools.android.Md5Encrypt;
 import len.tools.android.StorageUtils;
-
-import java.io.IOException;
 
 /**
  * 接口缓存工具类
@@ -20,14 +27,14 @@ public class HttpCacheWrapper {
      * 默认接口缓存大小
      */
     public static final long DEFAULT_CACHE_SIZE = 50 * 1024 * 1024;
-    private static final Object SYNCOBJECT = new Object();
+    private static final Object SYNC_OBJECT = new Object();
     private static final int DEFAULT_VALUE_COUNT = 1;
     public static DiskLruCache mHttpLruCache;
     private static volatile HttpCacheWrapper INSTANCE;
 
     public static HttpCacheWrapper instance() {
         if (INSTANCE == null) {
-            synchronized (SYNCOBJECT) {
+            synchronized (SYNC_OBJECT) {
                 if (INSTANCE == null) {
                     INSTANCE = new HttpCacheWrapper();
                 }
@@ -39,14 +46,14 @@ public class HttpCacheWrapper {
     public static void clear() {
         try {
             if (mHttpLruCache == null) {
-                Log.e("Http DiskLruCache 未成功初始化");
+                Log.e("Http DiskLruCache 未初始化");
                 return;
             }
             mHttpLruCache.delete();
             mHttpLruCache = null;
         } catch (IOException e) {
             e.printStackTrace();
-            Log.d("接口清除失败");
+            Log.d("接口缓存清除失败");
         }
     }
 
@@ -56,22 +63,24 @@ public class HttpCacheWrapper {
         } catch (IOException e) {
             mHttpLruCache = null;
             e.printStackTrace();
-            Log.e("DiskLruCache缓存初始化失败");
+            Log.e("DiskLruCache接口缓存初始化失败");
         }
     }
 
-    public <T> void put(final String key, final BaseRsp result) {
+    @SuppressLint("StaticFieldLeak")
+    public <T extends BaseRsp> void put(String key, final T result) {
         if (mHttpLruCache == null) {
-            Log.e("Http DiskLruCache 未成功初始化");
+            Log.e("Http DiskLruCache 未初始化");
             return;
         }
-        final String cacheKey = Md5Encrypt.md5(key);
-        /*AsyncTaskCompat.executeParallel(new AsyncTask<String, Void, Void>() {
+        String cacheKey = Md5Encrypt.md5(key);
+        new AsyncTask<String, Void, Void>() {
             @Override
             protected Void doInBackground(String... params) {
+                String cacheKeyInternal = params[0];
                 DiskLruCache.Editor editor = null;
                 try {
-                    editor = mHttpLruCache.edit(cacheKey);
+                    editor = mHttpLruCache.edit(cacheKeyInternal);
                     if (editor == null) {
                         Log.d("不能同时操作一个缓存editor");
                         return null;
@@ -89,24 +98,26 @@ public class HttpCacheWrapper {
                 }
                 return null;
             }
-        }, key);*/
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, cacheKey);
     }
 
-    public void get(final String key, final HttpRequest httpRequest) {
+    @SuppressLint("StaticFieldLeak")
+    public <T extends BaseRsp> void get(String key, final HttpCacheListener<T> httpCacheListener) {
         if (mHttpLruCache == null) {
-            Log.e("Http DiskLruCache 未成功初始化");
+            Log.e("Http DiskLruCache 未初始化");
             return;
         }
         final String cacheKey = Md5Encrypt.md5(key);
-            /*AsyncTaskCompat.executeParallel(new AsyncTask<String, Void, HttpResult>() {
+            new AsyncTask<String, Void, T>() {
                 @Override
-                protected HttpResult doInBackground(String... params) {
+                protected T doInBackground(String... params) {
+                    String cacheKeyInternal = params[0];
                     String resultStr = null;
                     try {
-                        DiskLruCache.Value value = mHttpLruCache.get(cacheKey);
+                        DiskLruCache.Value value = mHttpLruCache.get(cacheKeyInternal);
                         if (value != null) {
                             resultStr = value.getString(0);
-                            HttpResult httpResult = JsonUtils.fromJson(resultStr, HttpResult.class);
+                            T httpResult = JsonUtils.toEntity(resultStr, getClassOfTFromInterface(httpCacheListener));
                             return httpResult;
                         } else {
                             return null;
@@ -118,15 +129,31 @@ public class HttpCacheWrapper {
                 }
 
                 @Override
-                protected void onPostExecute(HttpResult httpResult) {
-                    if (httpRequest != null && !httpRequest.isSuccess() && httpResult != null) {
-                        Log.d("命中缓存， md5前cacheKey : " + key);
-                        httpRequest.onRestore(httpRequest.getResultData(httpResult));
+                protected void onPostExecute(T httpResult) {
+                    if (httpResult != null && !httpResult.isSuccess()) {
+                        Log.d("命中缓存， md5前cacheKey: " + cacheKey);
+                        httpCacheListener.onRestore(httpResult);
                     }
                     super.onPostExecute(httpResult);
                 }
-            }, cacheKey);*/
+            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, cacheKey);
 
+    }
+
+    private <T extends BaseRsp> Class<T> getClassOfTFromInterface(HttpCacheListener<T> httpCacheListener) {
+        Type[] interfaces = httpCacheListener.getClass().getGenericInterfaces();
+        Type type = null;
+        if (interfaces[0] instanceof ParameterizedType) {
+            type = ((ParameterizedType) interfaces[0]).getActualTypeArguments()[0];
+        } else {
+            throw new RuntimeException("the original should be initialize the child of some class which has ParameterizedType");
+        }
+        Class<T> classOfT = (Class<T>) HttpRequest.getRawType(type);
+        return classOfT;
+    }
+
+    public interface HttpCacheListener<T extends BaseRsp>{
+        void onRestore(T result);
     }
 
 }

@@ -50,10 +50,15 @@ public class RequestEntity {
      */
     private boolean isShowCacheFirst;
 
+    /**
+     * 是否当请求失败时显示缓存数据(如已经优先显示缓存数据，则失败时不在重复显示), 此参数设置为ture， isShouldCache同时设置为ture，且不能改为false
+     */
+    private boolean isShowCacheOnFail;
+
     private Builder mBuilder;
 
     /**
-     * 页面ondestory之后，请求未完成时，是否持续
+     * 页面onDestory之后，请求未完成时，是否持续
      */
     private boolean isPersistent;
 
@@ -66,6 +71,7 @@ public class RequestEntity {
             mApiPath = builder.mApiPath;
             mParamsMap = builder.mParamsMap;
             isShowCacheFirst = builder.isShowCacheFirst;
+            isShowCacheOnFail = builder.isShowCacheOnFail;
             extraCacheKey = builder.extraCacheKey;
             isPersistent = builder.isPersistent;
         }
@@ -81,6 +87,10 @@ public class RequestEntity {
 
     public boolean isShowCacheFirst() {
         return isShowCacheFirst;
+    }
+
+    public boolean isShowCacheOnFail() {
+        return isShowCacheOnFail;
     }
 
     public String getExtraCacheKey() {
@@ -151,6 +161,8 @@ public class RequestEntity {
 
         private boolean isShowCacheFirst;
 
+        private boolean isShowCacheOnFail;
+
         private boolean isPersistent;
 
         public Builder(String apiPath) {
@@ -160,8 +172,10 @@ public class RequestEntity {
         public Builder isShouldCache(boolean shouldCache) {
             if (isShowCacheFirst) {
                 isShouldCache = true;
-            } else {
-                isShouldCache = shouldCache;
+            } else if(isShowCacheOnFail) {
+                isShouldCache = true;
+            }else{
+                    isShouldCache = shouldCache;
             }
             return this;
         }
@@ -212,8 +226,14 @@ public class RequestEntity {
             return this;
         }
 
-        public Builder showCacheFirst(boolean firstShowCache) {
-            isShowCacheFirst = firstShowCache;
+        public Builder showCacheFirst(boolean isShowCacheFirst) {
+            this.isShowCacheFirst = isShowCacheFirst;
+            isShouldCache = true;
+            return this;
+        }
+
+        public Builder showCacheOnFail(boolean isShowCacheOnFail) {
+            this.isShowCacheOnFail = isShowCacheOnFail;
             isShouldCache = true;
             return this;
         }
