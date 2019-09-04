@@ -1,6 +1,9 @@
 package len.android.network;
 
 
+import java.io.IOException;
+import java.util.Map;
+
 import okhttp3.EventListener;
 import okhttp3.Interceptor;
 import okhttp3.RequestBody;
@@ -9,9 +12,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-
-import java.io.IOException;
-import java.util.Map;
+import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class RetrofitWrapper {
     private static final Object SYNC_OBJECT = new Object();
@@ -67,7 +68,7 @@ public class RetrofitWrapper {
         retrofit = new Retrofit.Builder()
                 .baseUrl(apiHost)
                 .client(OkHttpClientWrapper.getOkHttpClient())
-//                .addConverterFactory(ScalarsConverterFactory.create())
+                .addConverterFactory(ScalarsConverterFactory.create())
 //                .addConverterFactory(JacksonConverterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();

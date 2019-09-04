@@ -13,7 +13,6 @@ import java.util.Map;
  */
 
 public class RequestEntity {
-    public static final int DEFAULT_PAGE_SIZE = 20;
 
     /**
      * 接口是否需要缓存
@@ -140,7 +139,7 @@ public class RequestEntity {
     }
 
 
-    public String getmApiPath() {
+    public String getApiPath() {
         return mApiPath;
     }
 
@@ -246,6 +245,5 @@ public class RequestEntity {
         public RequestEntity build() {
             return new RequestEntity(this);
         }
-
     }
 }

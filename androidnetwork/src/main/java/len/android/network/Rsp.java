@@ -6,7 +6,7 @@ import len.tools.android.model.JsonEntity;
 public class Rsp extends JsonEntity {
 
     @SerializedName("code")
-    private int code;
+    private Integer code;
     @SerializedName("msg")
     private String msg;
 
@@ -14,11 +14,11 @@ public class Rsp extends JsonEntity {
         return code == ErrorCode.ERR_CODE_OK;
     }
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 
-    public void setCode(int code) {
+    public void setCode(Integer code) {
         this.code = code;
     }
 

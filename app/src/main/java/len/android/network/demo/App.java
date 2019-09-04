@@ -18,6 +18,7 @@ import len.android.basic.AppBase;
 import len.android.network.HttpCacheWrapper;
 import len.android.network.RetrofitWrapper;
 import len.tools.android.AndroidUtils;
+import len.tools.android.JsonInterfaceCheck;
 import len.tools.android.Log;
 import len.tools.android.StorageUtils;
 import len.tools.android.extend.LnjaCsvFormatStrategy;
@@ -41,6 +42,7 @@ public class App extends AppBase implements Thread.UncaughtExceptionHandler {
         if (processName != null) {
             boolean defaultProcess = processName.equals(getPackageName());
             if (defaultProcess) {
+                initJsonCheck();
                 initLog();
 //                initCrash();
 //                initRetrofit();
@@ -59,6 +61,10 @@ public class App extends AppBase implements Thread.UncaughtExceptionHandler {
 
     private void destroy() {
         RetrofitWrapper.getInstance().release();
+    }
+
+    private void initJsonCheck(){
+        JsonInterfaceCheck.setCheckable(BuildConfig.DEBUG);
     }
 
     private void initLog(){

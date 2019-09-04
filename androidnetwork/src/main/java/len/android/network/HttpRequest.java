@@ -5,14 +5,8 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.widget.Toast;
 
-import com.google.gson.JsonObject;
-
-import java.lang.reflect.Array;
-import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.lang.reflect.WildcardType;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.List;
@@ -42,13 +36,8 @@ public abstract class HttpRequest<T extends BaseRsp> {
     private RequestEntity mRequestEntity;
     private RequestUiHandler mRequestUiHandler;
     private boolean isSuccess = false;
-    private Call<JsonObject> call;
-    private HttpCacheListener httpCacheListener = new HttpCacheListener<T>() {
-        @Override
-        public void onRestore(T result) {
-            onRestore(result);
-        }
-    };
+    private Call<String> call;
+    private HttpCacheListener httpCacheListener = null;
 
     public HttpRequest(Context context, @NonNull RequestEntity requestEntity, RequestUiHandler requestUiHandler) {
         this.mContext = context;
@@ -60,86 +49,105 @@ public abstract class HttpRequest<T extends BaseRsp> {
         this(context, requestEntity, null);
     }
 
+    /**
+     * common GET method request
+     */
     public void get() {
-        isSuccess = false;
-        if (mRequestEntity == null) {
-            Log.e("RequestEntity cannot be null");
+        if(!beforeDefineCall()){
             return;
         }
-        if (mRequestUiHandler != null) {
-            mRequestUiHandler.onStart(mRequestEntity.getHintMsg().getMsg());
-        }
         if (mRequestEntity.getParams() == null) {
-            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath());
+            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getApiPath());
         } else if (mRequestEntity.getParams() instanceof Map) {
-            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath(), (Map<String, Object>) mRequestEntity.getParams());
+            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getApiPath(), (Map<String, Object>) mRequestEntity.getParams());
         } else {
-            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getmApiPath(), JsonUtils.toJson(mRequestEntity.getParams()));
+            call = RetrofitWrapper.getInstance().getService().commonGet(mRequestEntity.getApiPath(), JsonUtils.gsonToJson(mRequestEntity.getParams()));
         }
-        if (!mRequestEntity.isPersistent()) {
-            addRequest(mContext,this);
-        }
-        if (mRequestEntity.isShowCacheFirst()) {
-            fetchResultFromCache(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener);
-
+        if(!afterDefineCall()){
+            return;
         }
         executeInternal(call);
     }
 
+    /**
+     * common POST method request
+     */
     public void post() {
+        if(!beforeDefineCall()){
+            return;
+        }
+        Log.e(JsonUtils.gsonToJson(mRequestEntity.getParams()));
+        if (mRequestEntity.getParams() == null) {
+            call = RetrofitWrapper.getInstance().getService().commonPost(mRequestEntity.getApiPath());
+        } else {
+            call = RetrofitWrapper.getInstance().getService().commonPost(mRequestEntity.getApiPath(), mRequestEntity.getParams());
+        }
+        if(!afterDefineCall()){
+            return;
+        }
+        executeInternal(call);
+    }
+
+    private boolean beforeDefineCall(){
         isSuccess = false;
         if (mRequestEntity == null) {
             Log.e("RequestEntity cannot be null");
-            return;
+            return false;
         }
         if (mRequestUiHandler != null) {
             mRequestUiHandler.onStart(mRequestEntity.getHintMsg().getMsg());
         }
-        if (mRequestEntity.getParams() == null) {
-            call = RetrofitWrapper.getInstance().getService().commonPost(mRequestEntity.getmApiPath());
-        } else {
-            call = RetrofitWrapper.getInstance().getService().commonPost(mRequestEntity.getmApiPath(), mRequestEntity.getParams());
-        }
+        return true;
+    }
+
+    private boolean afterDefineCall(){
         if (!mRequestEntity.isPersistent()) {
             addRequest(mContext,this);
         }
-        if (mRequestEntity.isShowCacheFirst()) {
-            fetchResultFromCache(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener);
+        if (mRequestEntity.isShowCacheFirst() || mRequestEntity.isShowCacheOnFail()) {
+            httpCacheListener = new HttpCacheListener<T>() {
 
+                @Override
+                public void onRestore(T result) {
+                    HttpRequest.this.onRestore(result);
+                }
+            };
+            if (mRequestEntity.isShowCacheFirst()) {
+                fetchResultFromCache(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener,getClazzOfT(this));
+            }
         }
-        executeInternal(call);
+        return true;
     }
 
-    private void executeInternal(Call<JsonObject> call) {
-        RetrofitWrapper.getInstance().execute(call, new Callback<JsonObject>() {
+    private void executeInternal(Call<String> call) {
+        RetrofitWrapper.getInstance().execute(call, new Callback<String>() {
             @Override
-            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+            public void onResponse(Call<String> call, Response<String> response) {
                 handRetrofitOnResponse(call,response);
             }
 
             @Override
-            public void onFailure(Call<JsonObject> call, Throwable t) {
+            public void onFailure(Call<String> call, Throwable t) {
                 handRetrofitOnFailure(call, t);
             }
         });
     }
 
+    /**
+     * retrofit execute
+     * @param requestCall
+     * @param requestEntity
+     * @param requestUiHandler
+     */
     public void execute(Call<T> requestCall,RequestEntity requestEntity,RequestUiHandler requestUiHandler) {
         isSuccess = false;
         mRequestEntity = requestEntity;
         mRequestUiHandler = requestUiHandler;
-        if (mRequestEntity == null) {
-            Log.e("RequestEntity cannot be null");
+        if(!beforeDefineCall()){
             return;
         }
-        if (mRequestUiHandler != null) {
-            mRequestUiHandler.onStart(mRequestEntity.getHintMsg().getMsg());
-        }
-        if (!mRequestEntity.isPersistent()) {
-            addRequest(mContext,this);
-        }
-        if (mRequestEntity.isShowCacheFirst()) {
-            fetchResultFromCache(requestCall.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener);
+        if(!afterDefineCall()){
+            return;
         }
         RetrofitWrapper.getInstance().execute(requestCall, new Callback<T>() {
             @Override
@@ -169,13 +177,18 @@ public abstract class HttpRequest<T extends BaseRsp> {
         });
     }
 
-    private void handRetrofitOnResponse(Call<JsonObject> call, Response<JsonObject> response){
+    /**
+     * handle response when retrofit onResponse() called
+     * @param call
+     * @param response
+     */
+    private void handRetrofitOnResponse(Call<String> call, Response<String> response){
         if (call.isCanceled()) {
             return;
         }
         if (response.isSuccessful()) {
-            Log.d(JsonUtils.gsonToJson(response.body()));
-            T objectTresult = JsonUtils.gsonToEntity(response.body(), getClassOfTFromSupperclass(this));
+            Log.d(response.body());
+            T objectTresult = JsonUtils.gsonToEntity(response.body(), getTypeOfTfromSupperclass(this));
             if (objectTresult != null && objectTresult.isSuccess()) {
                 onSuccess(objectTresult);
                 if (mRequestEntity.isShouldCache()) {
@@ -197,6 +210,10 @@ public abstract class HttpRequest<T extends BaseRsp> {
         removeFinishedRequest();
     }
 
+    /**
+     * handle the not successful case when retrofit onResponse() called
+     * @param response
+     */
     private void handRetrofitOnResponseIsNotSuccessful(Response response){
         if (response.code() == 401 || response.code() == 403) { //授权异常
             BaseRsp result = new BaseRsp();
@@ -211,6 +228,12 @@ public abstract class HttpRequest<T extends BaseRsp> {
         }
     }
 
+
+    /**
+     * handle the failure when retrofit onFailure() called
+     * @param call
+     * @param t
+     */
     private void handRetrofitOnFailure(Call call, Throwable t) {
         if (call.isCanceled()) {
             return;
@@ -238,6 +261,10 @@ public abstract class HttpRequest<T extends BaseRsp> {
         }
     }
 
+    /**
+     * the default request error process logic
+     * @param result
+     */
     protected void performRequestErrorByDefault(BaseRsp result) {
         if (mContext instanceof RequestUiHandler) {
             ((RequestUiHandler) mContext).onError(result.getCode(), result.getMsg());
@@ -269,7 +296,7 @@ public abstract class HttpRequest<T extends BaseRsp> {
         }
         //如果已经优先显示了缓存数据，则不在重新调用缓存
         if (call != null&& !mRequestEntity.isShowCacheFirst() && mRequestEntity.isShowCacheOnFail()) {
-               fetchResultFromCache(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener);
+               fetchResultFromCache(call.request().url().toString() + mRequestEntity.getExtraCacheKey(), httpCacheListener,getClazzOfT(this));
         }
     }
 
@@ -303,8 +330,8 @@ public abstract class HttpRequest<T extends BaseRsp> {
      * @param key
      * @param listener
      */
-    private void fetchResultFromCache(String key, HttpCacheListener<T> listener){
-        HttpCacheWrapper.instance().get(key, listener);
+    private void fetchResultFromCache(String key, HttpCacheListener<T> listener,Class<T> clazz){
+        HttpCacheWrapper.instance().get(key, listener,clazz);
     }
 
     /**
@@ -332,7 +359,7 @@ public abstract class HttpRequest<T extends BaseRsp> {
      * 请求被取消时回调
      */
     protected void onCanceled() {
-        Log.d(mRequestEntity.getmApiPath() + mRequestEntity.getExtraCacheKey() + "接口请求已取消（并非绝对）");
+        Log.d("接口请求已取消(并非绝对) - " + mRequestEntity.getApiPath() + mRequestEntity.getExtraCacheKey());
     }
 
     /**
@@ -354,52 +381,19 @@ public abstract class HttpRequest<T extends BaseRsp> {
         removeRequest(mContext,this);
     }
 
-    private Class<T> getClassOfTFromSupperclass(HttpRequest<T> original) {
-        Type superClass = original.getClass().getGenericSuperclass();
+    private Type getTypeOfTfromSupperclass(HttpRequest<T> original) {
+        Type superClazz = original.getClass().getGenericSuperclass();
         Type type = null;
-        if (superClass instanceof ParameterizedType) {
-            type = ((ParameterizedType) superClass).getActualTypeArguments()[0];
+        if (superClazz instanceof ParameterizedType) {
+            type = ((ParameterizedType) superClazz).getActualTypeArguments()[0];
         } else {
             throw new RuntimeException("the original should be a child class of some class which has parameterized type");
         }
-        Class<T> classOfT = (Class<T>) getRawType(type);
-        return classOfT;
+        return type;
     }
 
-    public static Class<?> getRawType(Type type) {
-        if (type instanceof Class<?>) {
-            // type is a normal class.
-            return (Class<?>) type;
-
-        } else if (type instanceof ParameterizedType) {
-            ParameterizedType parameterizedType = (ParameterizedType) type;
-
-            // I'm not exactly sure why getRawType() returns Type instead of Class.
-            // Neal isn't either but suspects some pathological case related
-            // to nested classes exists.
-            Type rawType = parameterizedType.getRawType();
-            if (!(rawType instanceof Class)) {
-                throw new IllegalArgumentException();
-            }
-            return (Class<?>) rawType;
-
-        } else if (type instanceof GenericArrayType) {
-            Type componentType = ((GenericArrayType) type).getGenericComponentType();
-            return Array.newInstance(getRawType(componentType), 0).getClass();
-
-        } else if (type instanceof TypeVariable) {
-            // we could use the variable's bounds, but that won't work if there are multiple.
-            // having a raw type that's more general than necessary is okay
-            return Object.class;
-
-        } else if (type instanceof WildcardType) {
-            return getRawType(((WildcardType) type).getUpperBounds()[0]);
-
-        } else {
-            String className = type == null ? "null" : type.getClass().getName();
-            throw new IllegalArgumentException("Expected a Class, ParameterizedType, or "
-                    + "GenericArrayType, but <" + type + "> is of type " + className);
-        }
+    private Class<T> getClazzOfT(HttpRequest<T> original){
+        return (Class<T>)JsonUtils.getRawType(getTypeOfTfromSupperclass(original));
     }
 
     /**
